@@ -155,8 +155,8 @@ const drawBarChart = (data, svgRef) => {
 };
 
 const drawPieChart = (data, svgRef) => {
-  const width = 400;
-  const height = 400;
+  const width = 500;
+  const height = 500;
   const radius = Math.min(width, height) / 2;
   const color = d3.scaleOrdinal().range(["#8884d8", "#82ca9d", "#ffc658"]);
 
@@ -181,7 +181,7 @@ const drawPieChart = (data, svgRef) => {
     .attr("d", arc)
     .attr("fill", d => color(d.data.category));
 
-    const legend = svg.selectAll(".legend")
+  const legend = svg.selectAll(".legend")
     .data(data)
     .enter().append("g")
     .attr("class", "legend")
@@ -201,20 +201,63 @@ const drawPieChart = (data, svgRef) => {
     .style("fill", "#fff")
     .text(d => d.category);
 };
+const drawScatterPlot = (data, svgRef) => {
+  const margin = { top: 20, right: 30, bottom: 30, left: 40 };
+  const width = 600 - margin.left - margin.right;
+  const height = 300 - margin.top - margin.bottom;
+
+  const x = d3.scaleLinear()
+    .domain([0, d3.max(data, d => d.src_port)])
+    .nice()
+    .range([margin.left, width - margin.right]);
+
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(data, d => d.dest_port)])
+    .nice()
+    .range([height - margin.bottom, margin.top]);
+
+  const svg = d3.select(svgRef.current)
+    .attr("viewBox", `0 0 ${width + margin.left + margin.right} ${height + margin.top + margin.bottom}`)
+    .append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  svg.append("g")
+    .attr("transform", `translate(0,${height - margin.bottom})`)
+    .call(d3.axisBottom(x));
+
+  svg.append("g")
+    .attr("transform", `translate(${margin.left},0)`)
+    .call(d3.axisLeft(y));
+
+  svg.selectAll("circle")
+    .data(data)
+    .enter()
+    .append("circle")
+    .attr("cx", d => x(d.src_port))
+    .attr("cy", d => y(d.dest_port))
+    .attr("r", 5)
+    .style("fill", "#8884d8");
+};
+
+
+
 
 const Dashboard = () => {
   const lineChartRef = useRef(null);
   const barChartRef = useRef(null);
   const pieChartRef = useRef(null);
+  const scatterPlotRef = useRef(null); // Add ref for scatter plot
 
   useEffect(() => {
     const lineData = prepareLineData(data);
     const barData = prepareBarData(data);
     const pieData = preparePieData(data);
+    const scatterPlotData = data.slice(0, 100); // Adjust the number of data points as needed
 
     drawLineChart(lineData, lineChartRef);
     drawBarChart(barData, barChartRef);
     drawPieChart(pieData, pieChartRef);
+    drawScatterPlot(scatterPlotData, scatterPlotRef); // Draw scatter plot
   }, []);
 
   return (
@@ -231,13 +274,20 @@ const Dashboard = () => {
             <svg ref={barChartRef}></svg>
           </ChartContainer>
         </ChartRow>
-        <ChartContainer>
-          <h2>Alerts by Category</h2>
-          <svg ref={pieChartRef}></svg>
-        </ChartContainer>
+        <ChartRow> {/* Add a new row for scatter plot */}
+          <ChartContainer>
+            <h2>Alerts by Category</h2>
+            <svg ref={pieChartRef}></svg>
+          </ChartContainer>
+          <ChartContainer>
+            <h2>Scatter Plot of Ports</h2>
+            <svg ref={scatterPlotRef}></svg> {/* Add scatter plot SVG */}
+          </ChartContainer>
+        </ChartRow>
       </Container>
     </ThemeProvider>
   );
 };
 
 export default Dashboard;
+
